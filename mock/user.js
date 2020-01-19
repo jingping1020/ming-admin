@@ -11,6 +11,7 @@ const tokens = {
 const users = {
   'admin-token': {
     roles: ['admin'],
+    authorizations: ['Permission.browse', 'page.browse', 'role.browse', 'role.create'],
     introduction: 'I am a super administrator',
     avatar: 'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif',
     name: 'Super Admin'
@@ -26,12 +27,12 @@ const users = {
 export default [
   // user login
   {
-    url: '/user/login',
+    url: '/user/login_del',
     type: 'post',
     response: config => {
       const { username } = config.body
       const token = tokens[username]
-
+      console.log(token)
       // mock error
       if (!token) {
         return {
@@ -49,7 +50,7 @@ export default [
 
   // get user info
   {
-    url: '/user/info\.*',
+    url: '/user/info_del\.*',
     type: 'get',
     response: config => {
       const { token } = config.query

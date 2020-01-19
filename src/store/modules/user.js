@@ -1,4 +1,4 @@
-import { login, logout, getInfo } from '@/api/user'
+import { login, logout, getInfo } from '@/api/oauth'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import router, { resetRouter } from '@/router'
 
@@ -7,11 +7,35 @@ const state = {
   name: '',
   avatar: '',
   introduction: '',
-  roles: []
+  roles: [],
+  authorizations: []
+}
+
+const getters = {
+  /**
+   * 根据权限编码检查用户是否有权限
+   */
+  hasPermission: (state) => (authorization) => {
+    console.log('检查是否有权限：' + authorization)
+    let auth
+    if (typeof authorization === 'string') {
+      auth = state.authorizations.some(auth => {
+        return auth === authorization
+      })
+    } else {
+      auth = authorization.some(item => {
+        return state.authorizations.some(auth => {
+          return auth === item
+        })
+      })
+    }
+    return auth
+  }
 }
 
 const mutations = {
   SET_TOKEN: (state, token) => {
+    console.log('设置token:' + token)
     state.token = token
   },
   SET_INTRODUCTION: (state, introduction) => {
@@ -25,6 +49,9 @@ const mutations = {
   },
   SET_ROLES: (state, roles) => {
     state.roles = roles
+  },
+  SET_AUTHORIZATIONS: (state, authorizations) => {
+    state.authorizations = authorizations
   }
 }
 
@@ -35,8 +62,10 @@ const actions = {
     return new Promise((resolve, reject) => {
       login({ username: username.trim(), password: password }).then(response => {
         const { data } = response
-        commit('SET_TOKEN', data.token)
-        setToken(data.token)
+        console.log('login:' + data)
+        // token:result.data
+        commit('SET_TOKEN', data)
+        setToken(data)
         resolve()
       }).catch(error => {
         reject(error)
@@ -47,6 +76,7 @@ const actions = {
   // get user info
   getInfo({ commit, state }) {
     return new Promise((resolve, reject) => {
+      console.log('state.token:' + state.token)
       getInfo(state.token).then(response => {
         const { data } = response
 
@@ -54,13 +84,14 @@ const actions = {
           reject('Verification failed, please Login again.')
         }
 
-        const { roles, name, avatar, introduction } = data
+        const { roles, name, avatar, introduction, authorizations } = data
 
         // roles must be a non-empty array
         if (!roles || roles.length <= 0) {
           reject('getInfo: roles must be a non-null array!')
         }
 
+        commit('SET_AUTHORIZATIONS', authorizations) // 保存用户的权限数组
         commit('SET_ROLES', roles)
         commit('SET_NAME', name)
         commit('SET_AVATAR', avatar)
@@ -126,6 +157,7 @@ const actions = {
 export default {
   namespaced: true,
   state,
+  getters,
   mutations,
   actions
 }

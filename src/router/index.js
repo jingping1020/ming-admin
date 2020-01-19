@@ -11,6 +11,8 @@ import componentsRouter from './modules/components'
 import chartsRouter from './modules/charts'
 import tableRouter from './modules/table'
 import nestedRouter from './modules/nested'
+import sysRouter from './modules/sys'
+import monitorRouter from './modules/monitor'
 
 /**
  * Note: sub-menu only appear when route children.length >= 1
@@ -138,6 +140,7 @@ export const asyncRoutes = [
     meta: {
       title: 'Permission',
       icon: 'lock',
+      auth: ['Permission.browse'], // 可获访问的权限列表
       roles: ['admin', 'editor'] // you can set roles in root nav
     },
     children: [
@@ -147,6 +150,7 @@ export const asyncRoutes = [
         name: 'PagePermission',
         meta: {
           title: 'Page Permission',
+          auth: ['page.browse'],
           roles: ['admin'] // or you can only set roles in sub nav
         }
       },
@@ -155,7 +159,8 @@ export const asyncRoutes = [
         component: () => import('@/views/permission/directive'),
         name: 'DirectivePermission',
         meta: {
-          title: 'Directive Permission'
+          title: 'Directive Permission',
+          auth: ['directive.browse']
           // if do not set roles, means: this page does not require permission
         }
       },
@@ -165,7 +170,8 @@ export const asyncRoutes = [
         name: 'RolePermission',
         meta: {
           title: 'Role Permission',
-          roles: ['admin']
+          roles: ['admin'],
+          auth: ['role.browse']
         }
       }
     ]
@@ -184,7 +190,9 @@ export const asyncRoutes = [
     ]
   },
 
-  /** when your routing map is too long, you can split it into small modules **/
+  /** 当你的路由图太长时，你可以把它分成小模块 **/
+  sysRouter,
+  monitorRouter,
   componentsRouter,
   chartsRouter,
   nestedRouter,
@@ -399,6 +407,37 @@ const router = createRouter()
 export function resetRouter() {
   const newRouter = createRouter()
   router.matcher = newRouter.matcher // reset router
+}
+
+/**
+ * 处理路由信息
+ *
+ * @param routerMap
+ */
+export function processRouter(routerMap) {
+  const newRouters = routerMap.filter(router => {
+    const component = router.component
+
+    try {
+      router.name = router.path
+      if (component) {
+        if (component === 'Layout') {
+          router.component = Layout
+        } else {
+          router.component = () => import(component)
+        }
+      } else {
+        router.component = () => import('@/views/error-page/404')
+      }
+    } catch (e) {
+      // router.component = () => import('@/views/errorPage/404')
+    }
+    if (router.children && router.children.length) {
+      router.children = processRouter(router.children)
+    }
+    return true
+  })
+  return newRouters
 }
 
 export default router

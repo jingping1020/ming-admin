@@ -43,6 +43,19 @@ Object.keys(filters).forEach(key => {
 
 Vue.config.productionTip = false
 
+// 注册 v-auth 指令(判断是否拥有权限)
+Vue.directive('auth', {
+  inserted: (el, binding) => {
+    // 是否权限编码
+    if (binding.expression) {
+      // 判断是否拥有权限，如果没有则删除相关按钮
+      if (!store.getters['user/hasPermission'](binding.expression)) {
+        el.remove()
+      }
+    }
+  }
+})
+
 new Vue({
   el: '#app',
   router,
